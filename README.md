@@ -75,6 +75,7 @@ sudo dpkg -r cockpit-traffic-monitor
 ## 依赖
 
 - Cockpit >= 286
+- vnstat（后台流量统计，deb 安装时自动拉取）
 - 可选：`nmcli`（NetworkManager，用于无线信息）
 - 可选：`iw`（无线工具）
 

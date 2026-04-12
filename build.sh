@@ -24,7 +24,7 @@ Version: ${VERSION}
 Section: admin
 Priority: optional
 Architecture: all
-Depends: cockpit (>= 286)
+Depends: cockpit (>= 286), vnstat
 Maintainer: admin <admin@localhost>
 Description: Cockpit network interface traffic monitor
  Real-time traffic monitoring with multi-timespan charts,

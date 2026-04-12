@@ -1,6 +1,6 @@
 /* ========================================
-   Cockpit Traffic Monitor - App v7
-   Chart tooltips, dynamic detail, theme, no collector
+   Cockpit Traffic Monitor - App v8
+   vnstat backend, chart tooltips, dynamic detail, theme
    ======================================== */
 (function () {
   'use strict';
@@ -230,6 +230,78 @@
       if (h.raw.ts[i] >= cutoff) spd.push(h.raw.txSpeed[i] + h.raw.rxSpeed[i]);
     }
     return spd;
+  }
+
+  // ---- vnstat Backend ----
+  var vnstatAvailable = false;
+
+  function loadVnstatData() {
+    if (typeof cockpit === 'undefined') return;
+    cockpit.spawn(['which', 'vnstat'], { err: 'ignore' })
+      .then(function () {
+        vnstatAvailable = true;
+        // Load hourly data (last 24h)
+        cockpit.spawn(['vnstat', '--json', 'h'], { err: 'ignore' })
+          .then(function (out) { try { ingestVnstatJson(JSON.parse(out), 'hourly'); } catch(e) {} })
+          .catch(function () {});
+        // Load daily data (last 30d)
+        cockpit.spawn(['vnstat', '--json', 'd'], { err: 'ignore' })
+          .then(function (out) { try { ingestVnstatJson(JSON.parse(out), 'daily'); } catch(e) {} })
+          .catch(function () {});
+      })
+      .catch(function () { vnstatAvailable = false; });
+  }
+
+  function ingestVnstatJson(data, tierName) {
+    if (!data || !data.interfaces) return;
+    var now = Date.now();
+    for (var ii = 0; ii < data.interfaces.length; ii++) {
+      var iface = data.interfaces[ii];
+      var name = iface.name || iface.interface || '';
+      if (!name) continue;
+      var traffic = (iface.traffic && iface.traffic[tierName]) || [];
+      if (traffic.length === 0) continue;
+      var h = ensureHistory(name);
+      var tier = h[tierName];
+      // Clear and repopulate from vnstat
+      tier.ts.length = 0;
+      if (tierName === 'hourly') {
+        tier.txSpeed.length = 0; tier.rxSpeed.length = 0;
+        tier.txBytes.length = 0; tier.rxBytes.length = 0;
+        for (var i = 0; i < traffic.length; i++) {
+          var rec = traffic[i];
+          var ts;
+          if (rec.date) {
+            var t = rec.time || {};
+            ts = new Date(rec.date.year, rec.date.month - 1, rec.date.day, t.hour || 0).getTime();
+          } else { continue; }
+          if (ts < now - 86400000) continue; // skip older than 24h
+          var txB = rec.tx || 0, rxB = rec.rx || 0;
+          tier.ts.push(ts);
+          tier.txBytes.push(txB); tier.rxBytes.push(rxB);
+          tier.txSpeed.push(txB / 3600); // avg bytes/s over 1h
+          tier.rxSpeed.push(rxB / 3600);
+        }
+      } else if (tierName === 'daily') {
+        tier.txSpeed.length = 0; tier.rxSpeed.length = 0;
+        tier.txBytes.length = 0; tier.rxBytes.length = 0;
+        for (var j = 0; j < traffic.length; j++) {
+          var drec = traffic[j];
+          var dts;
+          if (drec.date) {
+            dts = new Date(drec.date.year, drec.date.month - 1, drec.date.day).getTime();
+          } else { continue; }
+          if (dts < now - 604800000) continue; // skip older than 7d
+          var dtxB = drec.tx || 0, drxB = drec.rx || 0;
+          tier.ts.push(dts);
+          tier.txBytes.push(dtxB); tier.rxBytes.push(drxB);
+          tier.txSpeed.push(dtxB / 86400); // avg bytes/s over 1d
+          tier.rxSpeed.push(drxB / 86400);
+        }
+      }
+    }
+    // Trigger chart re-render after ingest
+    if (state.chartDatasets) renderChart();
   }
 
   // ---- Data Collection ----
@@ -1066,7 +1138,7 @@
   }
 
   function init() {
-    initEvents(); fetchData(); startPolling();
+    initEvents(); fetchData(); loadVnstatData(); startPolling();
     var resizeTimer;
     window.addEventListener('resize', function () { clearTimeout(resizeTimer); resizeTimer = setTimeout(render, 200); });
   }
