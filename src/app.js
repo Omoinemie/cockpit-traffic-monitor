@@ -5,44 +5,27 @@
 (function () {
   'use strict';
 
-  // ---- i18n ----
-  var _lang = {};
-  var _started = false;
-  function loadLang(lang, cb) {
-    _lang = {};
-    function done() { if (cb) cb(); }
+  // ---- i18n (cockpit.gettext) ----
+  function loadLang(lang) {
     if (typeof cockpit !== 'undefined') {
-      var pending = 2;
-      function onDone() { if (--pending <= 0) done(); }
-      cockpit.file('lang/' + lang + '.json').read()
-        .then(function(c) { try { _lang = JSON.parse(c); } catch(e) {} applyLang(); onDone(); })
-        .catch(function() { onDone(); });
-      cockpit.file('manifest.json').read()
-        .then(function(c) {
-          try { var mf = JSON.parse(c); if (mf.version) document.getElementById('footer-ver').textContent = 'v' + mf.version; } catch(e) {}
-          onDone();
-        })
-        .catch(function() { onDone(); });
-    } else { done(); }
+      try {
+        var xhr = new XMLHttpRequest();
+        xhr.open('GET', 'lang/' + lang + '.json', false);
+        xhr.send(null);
+        if (xhr.status === 200) { cockpit.locale(JSON.parse(xhr.responseText)); }
+      } catch(e) {}
+    }
   }
-  function t(key) { return _lang[key] || key; }
+  function t(key) { return (typeof cockpit !== 'undefined') ? cockpit.gettext(key) : key; }
   function applyLang() {
     var els = document.querySelectorAll('[data-i18n]');
-    for (var i = 0; i < els.length; i++) {
-      var key = els[i].getAttribute('data-i18n');
-      els[i].textContent = t(key);
-    }
+    for (var i = 0; i < els.length; i++) { els[i].textContent = t(els[i].getAttribute('data-i18n')); }
     var phs = document.querySelectorAll('[data-i18n-placeholder]');
-    for (var j = 0; j < phs.length; j++) {
-      var phKey = phs[j].getAttribute('data-i18n-placeholder');
-      phs[j].placeholder = t(phKey);
-    }
+    for (var j = 0; j < phs.length; j++) { phs[j].placeholder = t(phs[j].getAttribute('data-i18n-placeholder')); }
   }
   function detectLang() {
-    var saved = null;
-    try { saved = localStorage.getItem('ctm-lang'); } catch(e) {}
-    if (saved) return saved;
-    var nav = navigator.language || navigator.userLanguage || '';
+    if (typeof cockpit !== 'undefined' && cockpit.language) return cockpit.language.replace('-', '_');
+    var nav = navigator.language || '';
     if (nav.toLowerCase().indexOf('zh') === 0) return 'zh_CN';
     return 'en';
   }
@@ -1206,11 +1189,19 @@
   }
 
   function init() {
-    if (_started) return;
-    _started = true;
-    loadLang(detectLang(), function() {
-      initEvents(); fetchData(); loadVnstatData(); startPolling();
-    });
+    loadLang(detectLang());
+    applyLang();
+    // Read version from manifest
+    try {
+      var xhr = new XMLHttpRequest();
+      xhr.open('GET', 'manifest.json', false);
+      xhr.send(null);
+      if (xhr.status === 200) {
+        var mf = JSON.parse(xhr.responseText);
+        if (mf.version) document.getElementById('footer-ver').textContent = 'v' + mf.version;
+      }
+    } catch(e) {}
+    initEvents(); fetchData(); loadVnstatData(); startPolling();
     var resizeTimer;
     window.addEventListener('resize', function () { clearTimeout(resizeTimer); resizeTimer = setTimeout(render, 200); });
   }
