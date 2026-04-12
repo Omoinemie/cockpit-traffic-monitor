@@ -7,16 +7,18 @@
 
   // ---- i18n ----
   var _lang = {};
-  var _langReady = false;
-  function loadLang(lang) {
+  function loadLang(lang, cb) {
     if (typeof cockpit !== 'undefined') {
-      var xhr = new XMLHttpRequest();
-      xhr.open('GET', 'po/' + lang + '.json', false);
-      xhr.send();
-      if (xhr.status === 200) { try { _lang = JSON.parse(xhr.responseText); } catch(e) {} }
+      cockpit.file('lang/' + lang + '.json').read()
+        .then(function(content) {
+          try { _lang = JSON.parse(content); } catch(e) { _lang = {}; }
+          applyLang();
+          if (cb) cb();
+        })
+        .catch(function() { _lang = {}; if (cb) cb(); });
+    } else {
+      if (cb) cb();
     }
-    _langReady = true;
-    applyLang();
   }
   function t(key) { return _lang[key] || key; }
   function applyLang() {
@@ -1187,13 +1189,10 @@
     // Language switcher
     var langSwitcher = document.getElementById('lang-switcher');
     if (langSwitcher) {
-      var curLang = detectLang();
-      langSwitcher.value = curLang;
       langSwitcher.addEventListener('change', function () {
         var newLang = this.value;
         try { localStorage.setItem('ctm-lang', newLang); } catch(e) {}
-        loadLang(newLang);
-        render();
+        loadLang(newLang, function() { render(); });
       });
     }
   }
@@ -1212,10 +1211,14 @@
   }
 
   function init() {
-    // Load language first
     var lang = detectLang();
-    loadLang(lang);
-    initEvents(); fetchData(); loadVnstatData(); startPolling();
+    // Set switcher value immediately
+    var langSwitcher = document.getElementById('lang-switcher');
+    if (langSwitcher) langSwitcher.value = lang;
+    // Load language then start
+    loadLang(lang, function() {
+      initEvents(); fetchData(); loadVnstatData(); startPolling();
+    });
     var resizeTimer;
     window.addEventListener('resize', function () { clearTimeout(resizeTimer); resizeTimer = setTimeout(render, 200); });
   }
