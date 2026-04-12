@@ -1,5 +1,10 @@
 # cockpit-traffic-monitor
 
+<img width="2281" height="1598" alt="image" src="https://github.com/user-attachments/assets/5f5094f9-834d-4a0e-b90f-7499956b71f3" />
+<img width="1368" height="1368" alt="image" src="https://github.com/user-attachments/assets/87ecf9ed-703f-4367-b62c-99ecc40680aa" />
+<img width="1355" height="1367" alt="image" src="https://github.com/user-attachments/assets/df798fa9-aa44-48e1-9b46-e0acf156fce2" />
+
+
 Cockpit 网络接口实时流量监控插件，适用于物理服务器、虚拟化环境（Proxmox VE / KVM / Docker）。
 
 ## 功能
