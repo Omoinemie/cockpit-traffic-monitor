@@ -1,5 +1,5 @@
 {
-  "name": "traffic-monitor",
+  "name": "Traffic-Monitor",
   "version": "1.8.0",
   "description": "Network interface traffic monitor",
   "requires": {
@@ -7,7 +7,7 @@
   },
   "menu": {
     "index": {
-      "label": "traffic-monitor",
+      "label": "Traffic-Monitor",
       "order": 110,
       "path": "index.html"
     }
