@@ -1,0 +1,16 @@
+{
+  "name": "traffic-monitor",
+  "version": "1.7.1",
+  "description": "Network interface traffic monitor",
+  "requires": {
+    "cockpit": "286"
+  },
+  "menu": {
+    "index": {
+      "label": "traffic-monitor",
+      "order": 110,
+      "path": "index.html"
+    }
+  },
+  "content-security-policy": "default-src 'self' 'unsafe-inline' 'unsafe-eval'; font-src 'self' data:;"
+}
