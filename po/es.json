@@ -55,12 +55,6 @@
   "1 min": "1 min",
   "5 min": "5 min",
   "30 min": "30 min",
-  "1 hour": "1 hora",
-  "6 hours": "6 horas",
-  "12 hours": "12 horas",
-  "24 hours": "24 horas",
-  "3 days": "3 días",
-  "7 days": "7 días",
   "Ethernet": "Ethernet",
   "TAP": "TAP",
   "Wireless": "Inalámbrico",
@@ -92,5 +86,10 @@
   "2 sec": "2 seg",
   "5 sec": "5 seg",
   "10 sec": "10 seg",
-  "Auto": "Auto"
+  "Auto": "Auto",
+  "10 min": "10 min",
+  "Hourly": "Por hora",
+  "Daily": "Por día",
+  "Monthly": "Por mes",
+  "Yearly": "Por año"
 }

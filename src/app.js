@@ -41,7 +41,7 @@
     // Rebuild time buttons with new language
     buildTimeButtons('chart-time-range', state.timeRange, function (range) { state.timeRange = range; renderChart(); });
     if (state.selectedInterface) {
-      buildTimeButtons('detail-time-range', state.detailTimeRange, function (range) { state.detailTimeRange = range; renderDetailCharts(state.selectedInterface); });
+      buildTimeButtons('detail-time-range', state.detailTimeRange, function (range) { state.detailTimeRange = range; renderDetailCharts(state.selectedInterface); }, DETAIL_TIME_SPANS);
     }
     renderTable();
   }
@@ -94,13 +94,16 @@
   var TIME_SPANS = [
     { label: function() { return t('1 min'); }, seconds: 60 },
     { label: function() { return t('5 min'); }, seconds: 300 },
+    { label: function() { return t('10 min'); }, seconds: 600 },
     { label: function() { return t('30 min'); }, seconds: 1800 },
-    { label: function() { return t('1 hour'); }, seconds: 3600 },
-    { label: function() { return t('6 hours'); }, seconds: 21600 },
-    { label: function() { return t('12 hours'); }, seconds: 43200 },
-    { label: function() { return t('24 hours'); }, seconds: 86400 },
-    { label: function() { return t('3 days'); }, seconds: 259200 },
-    { label: function() { return t('7 days'); }, seconds: 604800 },
+  ];
+
+  var DETAIL_TIME_SPANS = [
+    { label: function() { return t('5 min'); }, seconds: 300 },
+    { label: function() { return t('Hourly'); }, seconds: 3600 },
+    { label: function() { return t('Daily'); }, seconds: 86400 },
+    { label: function() { return t('Monthly'); }, seconds: 2592000 },
+    { label: function() { return t('Yearly'); }, seconds: 31536000 },
   ];
 
   function tierForRange(sec) {
@@ -318,91 +321,12 @@
     return spd;
   }
 
-  // ---- vnstat Backend ----
-  var vnstatAvailable = false;
-
+  // ---- vnstat Backend (delegated to vnstat.js) ----
   function loadVnstatData() {
-    if (typeof cockpit === 'undefined') return;
-    cockpit.spawn(['which', 'vnstat'], { err: 'ignore' })
-      .then(function () {
-        vnstatAvailable = true;
-        cockpit.spawn(['vnstat', '--json', 'h'], { err: 'ignore' })
-          .then(function (out) { try { ingestVnstatJson(JSON.parse(out), 'hourly'); } catch(e) {} })
-          .catch(function () {});
-        cockpit.spawn(['vnstat', '--json', 'd'], { err: 'ignore' })
-          .then(function (out) { try { ingestVnstatJson(JSON.parse(out), 'daily'); } catch(e) {} })
-          .catch(function () {});
-        cockpit.spawn(['vnstat', '--json', 'm'], { err: 'ignore' })
-          .then(function (out) { try { ingestVnstatJson(JSON.parse(out), 'monthly'); } catch(e) {} })
-          .catch(function () {});
-      })
-      .catch(function () { vnstatAvailable = false; });
-  }
-
-  function ingestVnstatJson(data, tierName) {
-    if (!data || !data.interfaces) return;
-    var now = Date.now();
-    for (var ii = 0; ii < data.interfaces.length; ii++) {
-      var iface = data.interfaces[ii];
-      var name = iface.name || iface.interface || '';
-      if (!name) continue;
-      var traffic = (iface.traffic && iface.traffic[tierName]) || [];
-      if (traffic.length === 0) continue;
-      var h = ensureHistory(name);
-      var tier = h[tierName];
-      tier.ts.length = 0;
-      if (tierName === 'hourly') {
-        tier.txSpeed.length = 0; tier.rxSpeed.length = 0;
-        tier.txBytes.length = 0; tier.rxBytes.length = 0;
-        for (var i = 0; i < traffic.length; i++) {
-          var rec = traffic[i];
-          var ts;
-          if (rec.date) {
-            var t = rec.time || {};
-            ts = new Date(rec.date.year, rec.date.month - 1, rec.date.day, t.hour || 0).getTime();
-          } else { continue; }
-          if (ts < now - 86400000) continue;
-          var txB = rec.tx || 0, rxB = rec.rx || 0;
-          tier.ts.push(ts);
-          tier.txBytes.push(txB); tier.rxBytes.push(rxB);
-          tier.txSpeed.push(txB / 3600);
-          tier.rxSpeed.push(rxB / 3600);
-        }
-      } else if (tierName === 'daily') {
-        tier.txSpeed.length = 0; tier.rxSpeed.length = 0;
-        tier.txBytes.length = 0; tier.rxBytes.length = 0;
-        for (var j = 0; j < traffic.length; j++) {
-          var drec = traffic[j];
-          var dts;
-          if (drec.date) {
-            dts = new Date(drec.date.year, drec.date.month - 1, drec.date.day).getTime();
-          } else { continue; }
-          if (dts < now - 604800000) continue;
-          var dtxB = drec.tx || 0, drxB = drec.rx || 0;
-          tier.ts.push(dts);
-          tier.txBytes.push(dtxB); tier.rxBytes.push(drxB);
-          tier.txSpeed.push(dtxB / 86400);
-          tier.rxSpeed.push(drxB / 86400);
-        }
-      } else if (tierName === 'monthly') {
-        tier.txSpeed.length = 0; tier.rxSpeed.length = 0;
-        tier.txBytes.length = 0; tier.rxBytes.length = 0;
-        for (var m = 0; m < traffic.length; m++) {
-          var mrec = traffic[m];
-          var mts;
-          if (mrec.date) {
-            mts = new Date(mrec.date.year, mrec.date.month - 1, 1).getTime();
-          } else { continue; }
-          if (mts < now - 31536000000) continue;
-          var mtxB = mrec.tx || 0, mrxB = mrec.rx || 0;
-          tier.ts.push(mts);
-          tier.txBytes.push(mtxB); tier.rxBytes.push(mrxB);
-          tier.txSpeed.push(mtxB / 2592000);
-          tier.rxSpeed.push(mrxB / 2592000);
-        }
-      }
+    if (window.Vnstat) {
+      window.Vnstat.init({ state: state, ensureHistory: ensureHistory, renderChart: renderChart });
+      window.Vnstat.loadVnstatData();
     }
-    if (state.chartDatasets) renderChart();
   }
 
   // ---- Data Collection ----
@@ -846,12 +770,13 @@
   }
 
   // ---- Time Range Buttons ----
-  function buildTimeButtons(containerId, currentRange, onChange) {
+  function buildTimeButtons(containerId, currentRange, onChange, spans) {
     var container = document.getElementById(containerId);
     if (!container) return;
+    spans = spans || TIME_SPANS;
     container.innerHTML = '';
-    for (var i = 0; i < TIME_SPANS.length; i++) {
-      var span = TIME_SPANS[i];
+    for (var i = 0; i < spans.length; i++) {
+      var span = spans[i];
       var btn = document.createElement('button');
       btn.className = 'time-btn' + (span.seconds === currentRange ? ' active' : '');
       btn.textContent = span.label(); btn.dataset.range = span.seconds;
@@ -974,9 +899,12 @@
         state.openFilter.classList.remove('open'); state.openFilter = null;
       }
     });
-    // Close filter on scroll
+    // Reposition filter dropdown on scroll so it follows the icon
     document.addEventListener('scroll', function () {
-      if (state.openFilter) { state.openFilter.classList.remove('open'); state.openFilter = null; }
+      if (state.openFilter) {
+        var icon = state.openFilter.closest('th') && state.openFilter.closest('th').querySelector('.filter-icon');
+        if (icon) positionFilterDropdown(state.openFilter, icon);
+      }
     }, true);
   }
 
@@ -1087,7 +1015,7 @@
     }
     buildTimeButtons('detail-time-range', state.detailTimeRange, function (range) {
       state.detailTimeRange = range; renderDetailCharts(state.selectedInterface);
-    });
+    }, DETAIL_TIME_SPANS);
     renderDetailCharts(name);
     document.getElementById('modal-overlay').classList.add('active');
   }
