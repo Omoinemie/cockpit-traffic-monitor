@@ -1129,7 +1129,7 @@
 
   // Filter input config per tab
   var FILTER_CONFIG = {
-    'fiveminutes': { type: 'datetime-local', placeholderFrom: '2026-01-01 00:00', placeholderTo: '2026-12-31 23:59' },
+    'fiveminutes': { type: 'datetime-local', placeholderFrom: '2026-01-01 00:00', placeholderTo: '2026-12-31 23:00' },
     'hourly':      { type: 'date',             placeholderFrom: '2026-01-01', placeholderTo: '2026-12-31' },
     'daily':       { type: 'month',            placeholderFrom: '2026-01', placeholderTo: '2026-12' },
     'monthly':     { type: 'number',           placeholderFrom: '2024', placeholderTo: '2026' },
@@ -1203,8 +1203,9 @@
           fromInput.min = mnD.getFullYear() + '-' + String(mnD.getMonth()+1).padStart(2,'0') + '-' + String(mnD.getDate()).padStart(2,'0');
           fromInput.max = mxD.getFullYear() + '-' + String(mxD.getMonth()+1).padStart(2,'0') + '-' + String(mxD.getDate()).padStart(2,'0');
         } else {
-          fromInput.min = formatDatetimeLocal(minT);
-          fromInput.max = formatDatetimeLocal(maxT);
+          // datetime-local: round to hour
+          fromInput.min = formatDatetimeLocal(minT).replace(/:\d+$/, ':00');
+          fromInput.max = formatDatetimeLocal(maxT).replace(/:\d+$/, ':00');
         }
         toInput.min = fromInput.min;
         toInput.max = fromInput.max;
@@ -1218,9 +1219,17 @@
     if (!fromVal && !toVal) return null;
 
     if (tab === 'fiveminutes') {
-      // datetime-local: "2026-04-17T14:30"
-      if (fromVal) fromTs = new Date(fromVal).getTime();
-      if (toVal) toTs = new Date(toVal).getTime();
+      // datetime-local but match by hour: from = start of hour, to = end of hour
+      if (fromVal) {
+        var fd = new Date(fromVal);
+        fd.setMinutes(0, 0, 0);
+        fromTs = fd.getTime();
+      }
+      if (toVal) {
+        var td = new Date(toVal);
+        td.setMinutes(59, 59, 999);
+        toTs = td.getTime();
+      }
     } else if (tab === 'hourly') {
       // date: "2026-04-17" — whole day
       if (fromVal) fromTs = new Date(fromVal + 'T00:00:00').getTime();
