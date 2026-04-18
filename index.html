@@ -220,21 +220,42 @@
           <div class="detail-section">
             <div class="section-header">
               <h3 data-i18n="Traffic History">Traffic History</h3>
-              <div class="vnstat-date-filter">
-                <label data-i18n="From">From</label>
-                <input type="date" id="vnstat-date-from" class="vnstat-date-input">
-                <label data-i18n="To">To</label>
-                <input type="date" id="vnstat-date-to" class="vnstat-date-input">
-                <button class="vnstat-date-btn" id="vnstat-date-apply" data-i18n="Filter">Filter</button>
-                <button class="vnstat-date-btn vnstat-date-reset" id="vnstat-date-reset" data-i18n="Reset">Reset</button>
-              </div>
             </div>
-            <div class="vnstat-tabs" id="vnstat-tabs"></div>
+            <div class="vnstat-tabs-row">
+              <div class="vnstat-tabs" id="vnstat-tabs"></div>
+              <button class="vnstat-refresh-btn" id="vnstat-refresh-btn" data-i18n-title="Refresh History" title="Refresh History">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+              </button>
+            </div>
+            <div class="vnstat-filter-bar" id="vnstat-filter-bar" style="display:none;">
+              <input type="text" id="vnstat-filter-from" class="vnstat-filter-input" placeholder="">
+              <span class="vnstat-filter-sep">→</span>
+              <input type="text" id="vnstat-filter-to" class="vnstat-filter-input" placeholder="">
+              <button class="vnstat-date-btn" id="vnstat-filter-apply" data-i18n="Filter">Filter</button>
+              <button class="vnstat-date-btn vnstat-date-reset" id="vnstat-filter-reset" data-i18n="Reset">Reset</button>
+            </div>
             <div class="vnstat-table-wrap">
               <table class="vnstat-table" id="vnstat-table">
                 <thead id="vnstat-thead"></thead>
                 <tbody id="vnstat-tbody"></tbody>
               </table>
+            </div>
+            <div class="vnstat-pagination" id="vnstat-pagination" style="display:none;">
+              <button class="vnstat-page-btn" id="vnstat-first-page" data-i18n="First">First</button>
+              <button class="vnstat-page-btn" id="vnstat-prev-page" data-i18n="Prev">Prev</button>
+              <span class="vnstat-page-info" id="vnstat-page-info"></span>
+              <button class="vnstat-page-btn" id="vnstat-next-page" data-i18n="Next">Next</button>
+              <button class="vnstat-page-btn" id="vnstat-last-page" data-i18n="Last">Last</button>
+              <div class="vnstat-page-size-wrap">
+                <select id="vnstat-page-size" class="vnstat-page-size">
+                  <option value="20" selected>20</option>
+                  <option value="50">50</option>
+                  <option value="100">100</option>
+                  <option value="200">200</option>
+                  <option value="0" data-i18n="All">All</option>
+                </select>
+                <span data-i18n="records/page">records/page</span>
+              </div>
             </div>
             <div class="vnstat-empty" id="vnstat-empty" style="display:none;">
               <span data-i18n="No historical data available">No historical data available</span>
