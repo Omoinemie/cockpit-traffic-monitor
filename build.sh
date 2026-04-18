@@ -3,7 +3,7 @@
 set -e
 
 NAME="cockpit-traffic-monitor"
-VERSION=$(sed -n 's/.*"version"[[:space:]]*:[[:space:]]*"$$[0-9][0-9.]*$$".*/\1/p' manifest.json)
+VERSION=$(grep -oP '"version":\s*"\K[0-9.]+' manifest.json)
 INSTALL_DIR="/usr/share/cockpit/traffic-monitor"
 
 echo "Building v${VERSION}"
