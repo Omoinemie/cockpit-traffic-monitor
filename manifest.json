@@ -1,6 +1,6 @@
 {
   "name": "traffic-monitor",
-  "version": "2.0.1",
+  "version": "2.0.2",
   "description": "Network interface traffic monitor",
   "requires": {
     "cockpit": "286"
